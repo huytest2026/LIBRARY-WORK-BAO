@@ -1,1 +1,24 @@
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwGLPb-H13bWKldmsiOTU7zc6NMGpY23IB27K6ULj_iK4U6uyKZLjcHgY8V7C6T0p82/exec";
 
+function loadData() {
+    document.getElementById('resultDiv').innerHTML = '<p>⏳ Đang tải dữ liệu số hóa tuyến cáp...</p>';
+    
+    fetch(GOOGLE_SCRIPT_URL + '?action=getData')
+        .then(response => response.json())
+        .then(res => {
+            if (res.success) {
+                // Xử lý dữ liệu và hiển thị bảng/bản đồ ở đây
+                let html = '<ul>';
+                res.data.forEach(item => {
+                    html += `<li>Tuyến: ${item.tuyenCap} - Trạm: ${item.tramQuanLy}</li>`;
+                });
+                html += '</ul>';
+                document.getElementById('resultDiv').innerHTML = html;
+            } else {
+                document.getElementById('resultDiv').innerHTML = '<p style="color:red">❌ Lỗi: ' + res.error + '</p>';
+            }
+        })
+        .catch(err => {
+            document.getElementById('resultDiv').innerHTML = '<p style="color:red">❌ Lỗi kết nối: ' + err + '</p>';
+        });
+}
