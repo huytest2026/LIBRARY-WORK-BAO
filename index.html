@@ -1,15 +1,1448 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Quản Lý Ca Trực</title>
-    <style>
-        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; }
-        iframe { width: 100%; height: 100%; border: none; }
-    </style>
+  <base target="_top">
+  <meta charset="utf-8">
+  <title>Hệ Thống Quản Lý Ca Trực & Sự Cố Cáp Quang</title>
+  
+  <!-- Thư viện ngoài -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+
+  <!-- Leaflet Map CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f6f9; color: #333; }
+    .container { max-width: 1250px; margin: 0 auto; background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    
+    /* Tab Navigation */
+    .tab-header { display: flex; border-bottom: 2px solid #ddd; margin-bottom: 25px; flex-wrap: wrap; gap: 5px; }
+    .tab-btn { padding: 12px 16px; cursor: pointer; background: #e9ecef; border: none; border-top-left-radius: 6px; border-top-right-radius: 6px; font-weight: bold; font-size: 13px; color: #495057; outline: none; transition: all 0.2s; }
+    .tab-btn.active { background: #1976d2; color: white; box-shadow: 0 -2px 5px rgba(0,0,0,0.1); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    
+    /* Form & Input Styles */
+    .form-row { display: flex; gap: 15px; margin-bottom: 15px; flex-wrap: wrap; }
+    .form-group { flex: 1; min-width: 220px; }
+    label { display: block; margin-bottom: 6px; font-weight: bold; color: #333; font-size: 14px; }
+    input, select, textarea { width: 100%; padding: 10px 12px; box-sizing: border-box; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px; background: #fff; }
+    input:focus, select:focus, textarea:focus { border-color: #1976d2; outline: none; box-shadow: 0 0 0 3px rgba(25,118,210,0.15); }
+    
+    /* Select2 Customization */
+    .select2-container .select2-selection--multiple,
+    .select2-container .select2-selection--single {
+        min-height: 38px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        padding: 2px;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered { line-height: 32px; }
+    .select2-container--default .select2-selection--single .select2-selection__arrow { height: 36px; }
+    .select2-container--default.select2-container--focus .select2-selection--multiple,
+    .select2-container--default.select2-container--focus .select2-selection--single { border-color: #1976d2; }
+
+    /* Tables & Highlights */
+    .red-frame-cell { border: 1px solid #ffcdd2 !important; background-color: #ffebee !important; }
+    .notes-edit-box { margin-top: 20px; background: #ffebee; border: 1px solid #ffcdd2; padding: 20px; border-radius: 6px; }
+    .notes-edit-box textarea { min-height: 80px; resize: vertical; }
+    
+    /* Bảng Vattư nổi bật vàng nhạt & green nhạt xen kẽ */
+    .vattu-table tr:nth-child(even) { background-color: #fff9c4 !important; } /* Vàng nhạt */
+    .vattu-table tr:nth-child(odd) { background-color: #e8f5e9 !important; }  /* Green nhạt */
+
+    /* Buttons */
+    .btn-action { 
+      background: linear-gradient(135deg, #1976d2, #1565c0); 
+      color: white; padding: 12px 24px; border: none; border-radius: 6px; 
+      cursor: pointer; font-weight: bold; font-size: 15px; 
+      box-shadow: 0 4px 8px rgba(25, 118, 210, 0.3); transition: all 0.25s ease;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-action:hover { background: linear-gradient(135deg, #1565c0, #0d47a1); box-shadow: 0 6px 12px rgba(25, 118, 210, 0.4); transform: translateY(-2px); }
+
+    .btn-success-action { background: linear-gradient(135deg, #2e7d32, #1b5e20); box-shadow: 0 4px 8px rgba(46, 125, 50, 0.3); }
+    .btn-success-action:hover { background: linear-gradient(135deg, #1b5e20, #103912); box-shadow: 0 6px 12px rgba(46, 125, 50, 0.4); }
+
+    .header-box { border-bottom: 2px solid #eee; margin-bottom: 20px; padding-bottom: 8px; }
+    
+    .table-responsive { 
+      overflow-x: auto; overflow-y: auto; max-height: 450px; 
+      margin-top: 15px; border-radius: 6px; border: 1px solid #e0e0e0; 
+    }
+    
+    table { width: 100%; border-collapse: collapse; font-size: 13px; background: #fff; }
+    th, td { border: 1px solid #e0e0e0; padding: 10px 12px; text-align: left; }
+    th { background-color: #f8f9fa; color: #333; font-weight: bold; position: sticky; top: 0; z-index: 10; }
+    tr:nth-child(even) { background-color: #fbfbfb; }
+
+    .phan-ca-table { min-width: 1200px; }
+    .phan-ca-table th { background-color: #ffcdd2 !important; color: #b71c1c !important; border-color: #ef9a9a !important; }
+    .phan-ca-table td { border-color: #ffcdd2 !important; word-break: break-word; white-space: pre-wrap; vertical-align: middle; padding: 6px 8px; }
+    .phan-ca-table tr:nth-child(even) { background-color: #ffebee !important; }
+    .phan-ca-table tr:nth-child(odd) { background-color: #ffffff !important; }
+
+    .phan-ca-table td select.select-single { width: 100%; min-width: 120px; padding: 4px; }
+    .phan-ca-table td .select2-container { width: 100% !important; min-width: 120px !important; }
+
+    .loading { color: #1976d2; font-style: italic; font-weight: bold; padding: 10px 0; }
+    .map-link { color: #1976d2; text-decoration: underline; cursor: pointer; font-weight: bold; }
+    
+    /* Flipbook Styles */
+    #flipbook-wrapper { display: flex; flex-direction: column; align-items: center; margin-top: 20px; }
+    #book { background-color: #fdfdfd; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+    .page { background-color: #fff; color: #333; border: 1px solid #dcdcdc; padding: 18px 20px; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; }
+    .page-cover { background: linear-gradient(135deg, #4a148c, #7b1fa2); color: white; text-align: center; justify-content: center; }
+    .page h3 { color: #4a148c; border-bottom: 2px solid #7b1fa2; padding-bottom: 4px; margin-top: 0; margin-bottom: 10px; font-size: 15px; }
+    .page-body { font-size: 12px; line-height: 1.4; color: #444; word-break: break-word; overflow-y: auto; max-height: 480px; padding-right: 4px; }
+    .page-footer { font-size: 11px; color: #888; text-align: right; border-top: 1px solid #eee; padding-top: 6px; margin-top: 5px; }
+    .flip-controls { margin-top: 20px; display: flex; gap: 15px; align-items: center; }
+  </style>
 </head>
 <body>
-    <iframe src="https://script.google.com/macros/s/AKfycbwGLPb-H13bWKldmsiOTU7zc6NMGpY23IB27K6ULj_iK4U6uyKZLjcHgY8V7C6T0p82/exec"></iframe>
+  <div class="container">
+    <!-- TAB NAVIGATION -->
+    <div class="tab-header">
+      <button class="tab-btn active" onclick="openTab(event, 'tabBaoCaoData')">📊 BÁO CÁO DATA</button>
+      <button class="tab-btn" onclick="openTab(event, 'tabPhanCa')">📅 PHÂN CA TRỰC</button>
+      <button class="tab-btn" onclick="openTab(event, 'tabTinhCong')">📊 TÍNH CÔNG TRỰC</button>
+      <button class="tab-btn" onclick="openTab(event, 'tabGiaoCa')">📑 SỔ GIAO CA TRỰC</button>
+      <button class="tab-btn" onclick="openTab(event, 'tabVatTu')">📦 THEO DÕI VẬT TƯ</button>
+      <button class="tab-btn" onclick="openTab(event, 'tabCapNhatKho')">🔄 CẬP NHẬT KHO</button>
+      <button class="tab-btn" onclick="openTab(event, 'tabSoHoa')">📍 SỐ HÓA & SỰ CỐ</button>
+      <button class="tab-btn" onclick="openTab(event, 'tabFlipbook')">📖 SỔ CA ĐIỆN TỬ</button>
+    </div>
+
+    <!-- TAB: BÁO CÁO TỪ DATA -->
+    <div id="tabBaoCaoData" class="tab-content active">
+      <div class="header-box"><h2 style="color: #1976d2; margin: 0;">BÁO CÁO SỐ LIỆU TỪ SHEET DATA</h2></div>
+      <div class="form-row">
+        <div class="form-group"><label>Tỉnh / TP:</label><input type="text" id="bcTinh" value="Thành phố Huế"></div>
+        <div class="form-group"><label>Quận / Huyện:</label><input type="text" id="bcQuanHuyen" placeholder="Nhập quận/huyện..."></div>
+        <div class="form-group"><label>Mức:</label><input type="text" id="bcMuc" value="A1"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>TG sự cố từ:</label><input type="date" id="bcTuNgay"></div>
+        <div class="form-group"><label>TG sự cố đến:</label><input type="date" id="bcDenNgay"></div>
+        <div class="form-group"><label>Nguyên nhân:</label><input type="text" id="bcNguyenNhan" value="Mất liên lạc SITE_OOS"></div>
+      </div>
+      <div class="form-row" style="align-items: flex-end;">
+        <div class="form-group"><label>Chọn file từ máy tính (Excel/CSV):</label><input type="file" id="bcFile" style="padding: 6px;" accept=".xlsx, .xls, .csv"></div>
+        <div class="form-group"><label>Người lập báo cáo:</label><select id="bcNguoiLap"></select></div>
+        <div class="form-group" style="display: flex; gap: 10px; align-items: flex-end;">
+          <button type="button" class="btn-action" onclick="laySoLieuData()">📥 Lấy số liệu</button>
+          <button type="button" class="btn-action btn-success-action" onclick="xuatBaoCaoData()">📊 Báo cáo</button>
+        </div>
+      </div>
+      <div id="baoCaoDataResult" style="margin-top: 20px;"></div>
+    </div>
+
+    <!-- TAB: PHÂN CA TRỰC -->
+    <div id="tabPhanCa" class="tab-content">
+      <div class="header-box"><h2 style="color: #1976d2; margin: 0;">LỊCH PHÂN CA TRỰC TUẦN</h2></div>
+      <div class="form-row" style="align-items: flex-end;">
+        <div class="form-group"><label>Chọn tuần (Ngày Thứ Hai đầu tuần):</label><input type="date" id="pcTuanBatDau"></div>
+        <div class="form-group" style="display: flex; gap: 10px; align-items: flex-end;">
+          <button type="button" class="btn-action" onclick="loadPhanCaTable()">📥 Xem Phân Ca</button>
+          <button type="button" class="btn-action btn-success-action" onclick="switchToEditPhanCa()">✏️ Nhập / Sửa Ca</button>
+        </div>
+      </div>
+      <div id="phanCaResult" style="margin-top: 20px;"></div>
+    </div>
+
+    <!-- TAB: TÍNH CÔNG TRỰC -->
+    <div id="tabTinhCong" class="tab-content">
+      <div class="header-box"><h2 style="color: #2e7d32; margin: 0;">THỐNG KÊ & TÍNH CÔNG NHÂN VIÊN</h2></div>
+      <div class="form-row" style="align-items: flex-end;">
+        <div class="form-group"><label>Từ ngày:</label><input type="date" id="tcTuNgay"></div>
+        <div class="form-group"><label>Đến ngày:</label><input type="date" id="tcDenNgay"></div>
+        <div class="form-group" style="display: flex; gap: 10px; align-items: flex-end;">
+          <button type="button" class="btn-action btn-success-action" onclick="loadBangTinhCong()">📊 Thống Kê Công</button>
+        </div>
+      </div>
+      <div id="tinhCongResult" style="margin-top: 20px;"></div>
+    </div>
+
+    <!-- TAB: SỔ GIAO CA TRỰC -->
+    <div id="tabGiaoCa" class="tab-content">
+      <div class="header-box"><h2 style="color: #1976d2; margin: 0;">NHẬT KÝ & BÀN GIAO CA TRỰC</h2></div>
+      <div class="form-row">
+        <div class="form-group"><label>Ngày giao ca:</label><input type="date" id="gcNgayGiao"></div>
+        <div class="form-group">
+          <label>Ca trực:</label>
+          <select id="gcCaTruc">
+            <option value="Ca 1">Ca 1 (07:00 - 14:00)</option>
+            <option value="Ca 2">Ca 2 (14:00 - 20:00)</option>
+            <option value="Ca 3">Ca 3 (20:00 - 07:00)</option>
+          </select>
+        </div>
+      </div>
+      <button type="button" class="btn-action" onclick="loadShiftData()">📥 Tải Dữ Liệu Ca Trực</button>
+
+      <form id="handoverForm" style="margin-top: 20px;" onsubmit="submitHandover(event)">
+        <div class="form-row">
+          <div class="form-group"><label>Người giao:</label><select id="gcNguoiGiao" required></select></div>
+          <div class="form-group"><label>Người nhận:</label><select id="gcNguoiNhan" required></select></div>
+        </div>
+        <div class="form-group" style="margin-bottom: 15px;"><label>2.1. Công việc thường xuyên / Bảo dưỡng:</label><textarea id="gcCongViecTX" rows="3"></textarea></div>
+        <div class="form-group" style="margin-bottom: 15px;"><label>2.2. Tình hình thông tin & sự cố:</label><textarea id="gcNoiDungCV" rows="3"></textarea></div>
+        <div class="form-group" style="margin-bottom: 15px;"><label>2.4. Tồn tại cần xử lý:</label><textarea id="gcTonTai" rows="3"></textarea></div>
+        <button type="submit" class="btn-action btn-success-action">💾 Lưu & Tạo Biên Bản Bàn Giao</button>
+      </form>
+      <div id="handoverResult" style="margin-top: 15px;"></div>
+    </div>
+
+    <!-- TAB: THEO DÕI VẬT TƯ -->
+    <div id="tabVatTu" class="tab-content">
+      <div class="header-box"><h2 style="color: #e65100; margin: 0;">TRA CỨU VẬT TƯ VẬN HÀNH</h2></div>
+      <div class="form-row">
+        <div class="form-group"><label>Lĩnh vực:</label><select id="vtLinhVuc" onchange="doSearchVatTuLocal()"><option value="">-- Tất cả Lĩnh vực --</option></select></div>
+        <div class="form-group"><label>Từ khóa (Tên tắt / Tên VT / Mã VT / Part Number):</label><input type="text" id="vtKeyword" placeholder="Nhập tên tắt, tên VT, mã VT hoặc Part Number..." oninput="doSearchVatTuLocal()"></div>
+        <div class="form-group"><label>Số Series / Serial No:</label><input type="text" id="vtSerial" placeholder="Nhập số series / serial..." oninput="doSearchVatTuLocal()"></div>
+      </div>
+      
+      <div style="margin-bottom: 15px; padding: 10px 15px; background-color: #fff3e0; border: 1px solid #ffe0b2; border-radius: 4px; display: inline-flex; align-items: center; gap: 8px;">
+        <span style="font-size: 16px;">📊</span>
+        <span style="font-weight: bold; color: #e65100;" id="vatTuCountLabel">Số lượng tìm thấy: 0 bản ghi</span>
+      </div>
+      <div id="vatTuResult" style="margin-top: 15px;"></div>
+    </div>
+
+    <!-- TAB: CẬP NHẬT KHO -->
+    <div id="tabCapNhatKho" class="tab-content">
+      <div class="header-box"><h2 style="color: #e65100; margin: 0;">🔄 CẬP NHẬT DỮ LIỆU KHO TỪ MÁY TÍNH</h2></div>
+      <p style="color: #555; font-size: 14px; margin-bottom: 15px;">Chọn file dữ liệu từ máy tính để hệ thống tự động đồng bộ lên Google Drive.</p>
+      <div class="form-row" style="align-items: flex-end;">
+        <div class="form-group"><label>Chọn file dữ liệu kho (Excel/CSV):</label><input type="file" id="khoFile" style="padding: 6px;" accept=".xlsx, .xls, .csv"></div>
+        <div class="form-group" style="display: flex; gap: 10px; align-items: flex-end;">
+          <button type="button" class="btn-action btn-success-action" onclick="uploadAndSyncKho()">🚀 Cập Nhật Lên Kho</button>
+        </div>
+      </div>
+      <div id="capNhatKhoResult" style="margin-top: 20px;"></div>
+    </div>
+
+    <!-- TAB: SỐ HÓA & SỰ CỐ TUYẾN CÁP -->
+    <div id="tabSoHoa" class="tab-content">
+      <div class="header-box"><h2 style="color: #1976d2; margin: 0;">QUẢN LÝ SỐ HÓA VÀ SỰ CỐ TUYẾN CÁP</h2></div>
+      
+      <!-- FORM NHẬP / CHỈNH SỬA SỐ HÓA -->
+      <form id="soHoaForm" onsubmit="submitSoHoaForm(event)">
+        <input type="hidden" id="shRowIdx" value="">
+        <input type="hidden" id="shRecordId" value="">
+        
+        <div class="card mb-3">
+          <div class="card-header bg-primary text-white fw-bold">QUẢN LÝ SỐ HÓA VÀ SỰ CỐ</div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-4">
+                <label for="shTramQuanLy" class="form-label fw-bold">Trạm quản lý:</label>
+                <select id="shTramQuanLy" class="form-select sh-dropdown" required onchange="onTramQuanLyChange()"></select>
+              </div>
+              <div class="col-md-4">
+                <label for="shLink" class="form-label fw-bold">Link:</label>
+                <select id="shLink" class="form-select sh-dropdown" required onchange="onLinkChange()"></select>
+              </div>
+              <div class="col-md-4">
+                <label for="shTuyenCap" class="form-label fw-bold">Tuyến cáp:</label>
+                <select id="shTuyenCap" class="form-select sh-dropdown" required onchange="onTuyenCapChange()"></select>
+              </div>
+              
+              <div class="col-md-4">
+                <label for="shTuyenQuyDinh" class="form-label fw-bold">Tên tuyến quy định:</label>
+                <select id="shTuyenQuyDinh" class="form-select sh-dropdown" required></select>
+              </div>
+              <div class="col-md-4">
+                <label for="shChieuDaiLink" class="form-label fw-bold">Chiều dài Link (Km):</label>
+                <input type="text" id="shChieuDaiLink" class="form-control" readonly>
+              </div>
+              <div class="col-md-4">
+                <label for="shDoiTuong" class="form-label fw-bold">Đối tượng:</label>
+                <input type="text" id="shDoiTuong" class="form-control" value="MX">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group"><label>Phương thức thi công:</label><input type="text" id="shPhuongThucThiCong" value="Chôn trực tiếp"></div>
+          <div class="form-group"><label>OTDR -> MX:</label><input type="text" id="shOtdr" placeholder="VD: 53.45"></div>
+          <div class="form-group"><label>Độ sâu / Cao cấp:</label><input type="text" id="shDoSau" value="70"></div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group"><label>Lấy tọa độ (Lat, Lng):</label><div style="display: flex; gap: 5px;"><input type="text" id="shToaDo" placeholder="16.4802, 107.6233"><button type="button" class="btn-action" style="padding: 6px 12px; font-size: 12px;" onclick="getCurrentGPSLocation()">📍 Lấy vị trí</button></div></div>
+          <div class="form-group"><label>Thời gian:</label><input type="date" id="shThoiGian"></div>
+          <div class="form-group"><label>Chiều từ:</label><input type="text" id="shChieuTu" value="Bắc -> Nam"></div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group"><label>Diễn giải:</label><input type="text" id="shDienGiai" placeholder="Điểm chuyển trái -> Phải"></div>
+          <div class="form-group"><label>Km:</label><input type="text" id="shKm" placeholder="876"></div>
+          <div class="form-group"><label>M:</label><input type="text" id="shM" placeholder="230"></div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group"><label>Chụp ảnh (Link ảnh):</label><input type="text" id="shChupAnh" placeholder="URL ảnh..."></div>
+          <div class="form-group"><label>Tại Km:</label><input type="text" id="shTaiKm" placeholder="Km 876+230"></div>
+          <div class="form-group"><label>Tuyến đường:</label><select id="shTuyenDuong" class="sh-dropdown"></select></div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group"><label>Cách mép đường (m):</label><input type="text" id="shCachMepDuong" value="2"></div>
+          <div class="form-group">
+            <label>Lý do cập nhật:</label>
+            <select id="shLyDoCapNhat" class="sh-dropdown" onchange="onLyDoCapNhatChange()">
+              <option value="Số hóa cáp quang">Số hóa cáp quang</option>
+              <option value="Sự cố cáp quang">Sự cố cáp quang</option>
+            </select>
+          </div>
+          <div class="form-group" id="groupSoMxPhatSinh"><label>Số MX phát sinh (cái):</label><input type="number" id="shSoMxPhatSinh" value="2"></div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group" id="groupSoCapPhatSinh"><label>Số cáp phát sinh (m):</label><input type="number" id="shSoCapPhatSinh" value="30"></div>
+          <div class="form-group"><label>Có trảo sợi?:</label><select id="shCoTraoSoi"><option value="Có">Có</option><option value="Không">Không</option></select></div>
+          <div class="form-group" style="display: flex; align-items: flex-end; gap: 10px;">
+            <button type="submit" class="btn-action btn-success-action" id="shSubmitBtn">💾 Thêm số liệu hóa</button>
+            <button type="button" class="btn-action" style="background: #757575;" onclick="resetSoHoaForm()">🔄 Làm mới</button>
+          </div>
+        </div>
+      </form>
+
+      <!-- TRA CỨU SỰ CỐ CÁP QUANG -->
+      <div style="margin-top: 30px; background: #f8f9fa; padding: 15px; border-radius: 6px; border: 1px solid #ddd;">
+        <h3 style="color: #1976d2; margin-top: 0;">TRA CỨU SỰ CỐ CÁP QUANG</h3>
+        <div class="form-row">
+          <div class="form-group"><label>Link tra cứu:</label><select id="searchLink" class="sh-dropdown"><option value="">-- Tất cả Link --</option></select></div>
+          <div class="form-group"><label>Tuyến cáp tra cứu:</label><select id="searchTuyenCap" class="sh-dropdown"><option value="">-- Tất cả Tuyến cáp --</option></select></div>
+          <div class="form-group"><label>Lý do tra cứu:</label><input type="text" id="searchLyDo" value="Sự cố cáp quang"></div>
+          <div class="form-group"><label>Khoảng cách đo OTDR (km):</label><input type="text" id="searchOtdr" placeholder="VD: 53.45"></div>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <button type="button" class="btn-action" onclick="filterSoHoaData()">🔍 Tra cứu sự cố (2 điểm gần nhất)</button>
+          <button type="button" class="btn-action btn-success-action" onclick="renderSoHoaTableAndMap()">🗺️ Hiển thị tất cả</button>
+        </div>
+      </div>
+
+      <!-- BẢN ĐỒ LEAFLET -->
+      <div style="margin-top: 20px;">
+        <h3 style="color: #333; margin-bottom: 8px;">Bản đồ hiển thị các điểm cập nhật</h3>
+        <div id="map" style="height: 400px; border-radius: 6px; border: 1px solid #ccc;"></div>
+      </div>
+
+      <!-- DANH SÁCH SỐ LIỆU -->
+      <div style="margin-top: 25px;">
+        <h3 style="color: #333; margin-bottom: 8px;">Danh sách số liệu (Nhấp vào dòng bất kỳ để chỉnh sửa)</h3>
+        <div id="soHoaTableResult"></div>
+      </div>
+    </div>
+
+    <!-- TAB: SỔ ĐIỆN TỬ (FLIPBOOK) -->
+    <div id="tabFlipbook" class="tab-content">
+      <div class="header-box"><h2 style="color: #7b1fa2; margin: 0;">📖 SỔ CA ĐIỆN TỬ (FLIPBOOK)</h2></div>
+      <p style="color: #555; font-size: 14px; margin-bottom: 15px;">Lật giở xem lại các biên bản bàn giao ca trực trực quan.</p>
+      <button type="button" class="btn-action" style="background: linear-gradient(135deg, #7b1fa2, #4a148c);" onclick="loadFlipbookData()">🔄 Tải & Làm Mới Sổ Tay</button>
+      
+      <div id="flipbook-wrapper">
+        <div id="book">
+          <div class="page page-cover">
+            <div style="margin: auto; display: flex; flex-direction: column; justify-content: space-between; height: 100%; padding: 20px 10px; text-align: center;">
+              <div>
+                <div style="font-size: 13px; font-weight: bold; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.5px;">TRUNG TÂM HẠ TẦNG MIỀN TRUNG</div>
+                <div style="font-size: 12px; font-weight: bold; text-transform: uppercase; opacity: 0.9;">TRẠM VIỄN THÔNG HUẾ</div>
+              </div>
+              <div><h2 style="font-size: 28px; margin: 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.4); letter-spacing: 1px;">SỔ TRỰC CA</h2></div>
+              <div><p style="font-size: 12px; margin: 0; opacity: 0.8;">(Tổng số trang: 1)</p></div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="flip-controls">
+          <button type="button" class="btn-action" style="padding: 8px 16px; font-size: 14px;" onclick="prevPage()">◀ Trang trước</button>
+          <span id="page-info" style="font-weight: bold; color: #7b1fa2;">Trang: 1 / 1</span>
+          <button type="button" class="btn-action" style="padding: 8px 16px; font-size: 14px;" onclick="nextPage()">Trang sau ▶</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var globalVatTuData = [];
+    var pageFlipInstance = null;
+    var globalLibraryData = [];
+    var globalSoHoaData = [];
+    var leafletMap = null;
+    var mapMarkersGroup = null;
+
+    const defaultPositionNotes = {
+      ca1: "BC 10g và 13h30",
+      ca2: "BC 10g và tổng hợp",
+      ca3: "",
+      ttcq1: "Km860-Km894",
+      ttcq2: "Km812-Km860",
+      ttcq3: "A Lưới",
+      congTac: "",
+      nghiBu: ""
+    };
+
+    function openTab(evt, tabName) {
+      var tabcontent = document.getElementsByClassName("tab-content");
+      for (var i = 0; i < tabcontent.length; i++) tabcontent[i].classList.remove("active");
+      var tablinks = document.getElementsByClassName("tab-btn");
+      for (var i = 0; i < tablinks.length; i++) tablinks[i].classList.remove("active");
+      
+      document.getElementById(tabName).classList.add("active");
+      if (evt && evt.currentTarget) evt.currentTarget.classList.add("active");
+      
+      if (tabName === 'tabBaoCaoData') {
+        var today = new Date().toISOString().split('T')[0];
+        if (document.getElementById('bcTuNgay')) document.getElementById('bcTuNgay').value = today;
+        if (document.getElementById('bcDenNgay')) document.getElementById('bcDenNgay').value = today;
+      }
+      if (tabName === 'tabSoHoa') {
+        setTimeout(function() {
+          if (leafletMap) leafletMap.invalidateSize();
+          else initLeafletMap();
+        }, 200);
+      }
+      if (tabName === 'tabFlipbook' && !pageFlipInstance) {
+        loadFlipbookData();
+      }
+    }
+
+    function populateSelect(selectId, list, defaultText) {
+      var select = document.getElementById(selectId);
+      if (!select) return;
+      select.innerHTML = '<option value="">' + defaultText + '</option>';
+      if (list && Array.isArray(list)) {
+        list.forEach(function(item) {
+          var opt = document.createElement('option');
+          opt.value = item;
+          opt.textContent = item;
+          select.appendChild(opt);
+        });
+      }
+    }
+
+    function getMonday(d) {
+      d = new Date(d);
+      var day = d.getDay();
+      var diff = d.getDate() - day + (day === 0 ? -6 : 1);
+      var monday = new Date(d.setDate(diff));
+      var year = monday.getFullYear();
+      var month = String(monday.getMonth() + 1).padStart(2, '0');
+      var dayStr = String(monday.getDate()).padStart(2, '0');
+      return year + '-' + month + '-' + dayStr;
+    }
+
+    function onLyDoCapNhatChange() {
+      var lyDo = document.getElementById('shLyDoCapNhat').value;
+      var mxGroup = document.getElementById('groupSoMxPhatSinh');
+      var capGroup = document.getElementById('groupSoCapPhatSinh');
+      
+      if (lyDo === 'Sự cố cáp quang') {
+        if (mxGroup) mxGroup.style.display = 'block';
+        if (capGroup) capGroup.style.display = 'block';
+      } else {
+        if (mxGroup) mxGroup.style.display = 'none';
+        if (capGroup) capGroup.style.display = 'none';
+      }
+    }
+
+    window.onload = function() {
+      var today = new Date().toISOString().split('T')[0];
+      var dateInput = document.getElementById('gcNgayGiao');
+      if (dateInput) dateInput.value = today;
+      
+      var pcInput = document.getElementById('pcTuanBatDau');
+      if (pcInput) pcInput.value = getMonday(new Date());
+
+      if (document.getElementById('bcTuNgay')) document.getElementById('bcTuNgay').value = today;
+      if (document.getElementById('bcDenNgay')) document.getElementById('bcDenNgay').value = today;
+      if (document.getElementById('shThoiGian')) document.getElementById('shThoiGian').value = today;
+
+      if (document.getElementById('shLyDoCapNhat')) {
+        document.getElementById('shLyDoCapNhat').value = 'Số hóa cáp quang';
+        onLyDoCapNhatChange();
+      }
+
+      var dateObj = new Date();
+      var firstDayOfMonth = new Date(dateObj.getFullYear(), dateObj.getMonth(), 1).toISOString().split('T')[0];
+      if (document.getElementById('tcTuNgay')) document.getElementById('tcTuNgay').value = firstDayOfMonth;
+      if (document.getElementById('tcDenNgay')) document.getElementById('tcDenNgay').value = today;
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (res && res.success) {
+            if (res.staffList) {
+              populateSelect('gcNguoiGiao', res.staffList, '-- Chọn người giao --');
+              populateSelect('gcNguoiNhan', res.staffList, '-- Chọn người nhận --');
+              populateSelect('bcNguoiLap', res.staffList, '-- Chọn người lập báo cáo --');
+              var defaultNguoiLap = res.staffList.find(function(s) { return s.includes('Trần Quốc Bảo'); }) || res.staffList[0];
+              if (defaultNguoiLap && document.getElementById('bcNguoiLap')) document.getElementById('bcNguoiLap').value = defaultNguoiLap;
+            }
+            if (res.linhVucList) {
+              populateSelect('vtLinhVuc', res.linhVucList, '-- Tất cả Lĩnh vực --');
+            }
+            if (res.allVatTuData) {
+              globalVatTuData = res.allVatTuData;
+              renderVatTuTable(globalVatTuData);
+            }
+            if (res.lastHandover) {
+              document.getElementById('gcCongViecTX').value = res.lastHandover.congViecThuongXuyen || '';
+              document.getElementById('gcNoiDungCV').value = res.lastHandover.noiDungCongViec || '';
+              document.getElementById('gcTonTai').value = res.lastHandover.noiDungTonTai || '';
+              if (res.lastHandover.nguoiGiao) document.getElementById('gcNguoiGiao').value = res.lastHandover.nguoiGiao;
+              if (res.lastHandover.nguoiNhan) document.getElementById('gcNguoiNhan').value = res.lastHandover.nguoiNhan;
+            }
+            loadPhanCaTable();
+            loadBangTinhCong();
+          } else {
+            alert("Lỗi khởi tạo dữ liệu: " + (res ? res.error : "Không phản hồi từ Server"));
+          }
+        })
+        .withFailureHandler(function(err) {
+          alert("Lỗi kết nối Server: " + err.message);
+        })
+        .getInitialData();
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (res && res.success) {
+            globalLibraryData = res.libraryData || [];
+            globalSoHoaData = res.soHoaData || [];
+            populateLibraryDropdowns();
+            renderSoHoaTableAndMap();
+          }
+        })
+        .getLibraryAndSoHoaData();
+    };
+
+    function populateLibraryDropdowns() {
+      var tramSet = new Set();
+      var tuyenDuongSet = new Set();
+      var linkSet = new Set();
+      var tuyenCapSet = new Set();
+
+      globalLibraryData.forEach(function(item) {
+        if (item.tramQuanLy) tramSet.add(item.tramQuanLy);
+        if (item.tuyenDuong) tuyenDuongSet.add(item.tuyenDuong);
+        if (item.link) linkSet.add(item.link);
+        if (item.tuyenCap) tuyenCapSet.add(item.tuyenCap);
+      });
+
+      populateSelect('shTramQuanLy', Array.from(tramSet).sort(), '-- Chọn trạm quản lý --');
+      populateSelect('shTuyenDuong', Array.from(tuyenDuongSet).sort(), '-- Chọn tuyến đường --');
+
+      populateSelect('searchLink', Array.from(linkSet).sort(), '-- Tất cả Link --');
+      populateSelect('searchTuyenCap', Array.from(tuyenCapSet).sort(), '-- Tất cả Tuyến cáp --');
+
+      updateLinkDropdown();
+    }
+
+    function onTramQuanLyChange() {
+      updateLinkDropdown();
+      updateTuyenCapDropdown();
+      updateTuyenQuyDinhDropdown();
+    }
+
+    function updateLinkDropdown() {
+      var selectedTram = document.getElementById('shTramQuanLy').value;
+      var linkSet = new Set();
+      globalLibraryData.forEach(function(item) {
+        if (!selectedTram || item.tramQuanLy === selectedTram) {
+          if (item.link) linkSet.add(item.link);
+        }
+      });
+      populateSelect('shLink', Array.from(linkSet).sort(), '-- Chọn Link --');
+      updateTuyenCapDropdown();
+    }
+
+    function onLinkChange() {
+      var selectedLink = document.getElementById('shLink').value;
+      if (selectedLink) {
+        var matched = globalLibraryData.find(function(item) { return item.link === selectedLink; });
+        if (matched) {
+          if (matched.tramQuanLy && !document.getElementById('shTramQuanLy').value) {
+            document.getElementById('shTramQuanLy').value = matched.tramQuanLy;
+          }
+          if (matched.chieuDaiLink) document.getElementById('shChieuDaiLink').value = matched.chieuDaiLink;
+          if (matched.tuyenDuong) document.getElementById('shTuyenDuong').value = matched.tuyenDuong;
+        }
+      }
+      updateTuyenCapDropdown();
+      updateTuyenQuyDinhDropdown();
+    }
+
+    function updateTuyenCapDropdown() {
+      var selectedTram = document.getElementById('shTramQuanLy').value;
+      var selectedLink = document.getElementById('shLink').value;
+      var tuyenCapSet = new Set();
+      
+      globalLibraryData.forEach(function(item) {
+        var matchTram = !selectedTram || item.tramQuanLy === selectedTram;
+        var matchLink = !selectedLink || item.link === selectedLink;
+        if (matchTram && matchLink) {
+          if (item.tuyenCap) tuyenCapSet.add(item.tuyenCap);
+        }
+      });
+      populateSelect('shTuyenCap', Array.from(tuyenCapSet).sort(), '-- Chọn tuyến cáp --');
+      updateTuyenQuyDinhDropdown();
+    }
+
+    function onTuyenCapChange() {
+      updateTuyenQuyDinhDropdown();
+      
+      var selectedLink = document.getElementById('shLink').value;
+      var selectedTuyenCap = document.getElementById('shTuyenCap').value;
+      if (selectedLink && selectedTuyenCap) {
+        var matched = globalLibraryData.find(function(item) { 
+          return item.link === selectedLink && item.tuyenCap === selectedTuyenCap; 
+        });
+        if (matched) {
+          if (matched.tenTuyenQuyDinh) document.getElementById('shTuyenQuyDinh').value = matched.tenTuyenQuyDinh;
+          if (matched.chieuDaiLink) document.getElementById('shChieuDaiLink').value = matched.chieuDaiLink;
+          if (matched.tuyenDuong) document.getElementById('shTuyenDuong').value = matched.tuyenDuong;
+        }
+      }
+    }
+
+    function updateTuyenQuyDinhDropdown() {
+      var selectedTram = document.getElementById('shTramQuanLy').value;
+      var selectedLink = document.getElementById('shLink').value;
+      var selectedTuyenCap = document.getElementById('shTuyenCap').value;
+      var tuyenQuyDinhSet = new Set();
+      
+      globalLibraryData.forEach(function(item) {
+        var matchTram = !selectedTram || item.tramQuanLy === selectedTram;
+        var matchLink = !selectedLink || item.link === selectedLink;
+        var matchTuyenCap = !selectedTuyenCap || item.tuyenCap === selectedTuyenCap;
+        if (matchTram && matchLink && matchTuyenCap) {
+          if (item.tenTuyenQuyDinh) tuyenQuyDinhSet.add(item.tenTuyenQuyDinh);
+        }
+      });
+      populateSelect('shTuyenQuyDinh', Array.from(tuyenQuyDinhSet).sort(), '-- Chọn tên tuyến quy định --');
+    }
+
+    function initLeafletMap() {
+      if (leafletMap) return;
+      leafletMap = L.map('map').setView([16.4637, 107.5909], 13);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(leafletMap);
+      mapMarkersGroup = L.layerGroup().addTo(leafletMap);
+      updateMapMarkers(globalSoHoaData);
+    }
+
+    function updateMapMarkers(data) {
+      if (!leafletMap) return;
+      if (mapMarkersGroup) mapMarkersGroup.clearLayers();
+      
+      var bounds = [];
+      data.forEach(function(item) {
+        if (item.toaDo && item.toaDo.includes(',')) {
+          var parts = item.toaDo.split(',');
+          var lat = parseFloat(parts[0].trim());
+          var lng = parseFloat(parts[1].trim());
+          if (!isNaN(lat) && !isNaN(lng)) {
+            var marker = L.marker([lat, lng]).addTo(mapMarkersGroup);
+            marker.bindPopup('<b>' + (item.tuyenQuyDinh || 'Tuyến cáp') + '</b><br>Link: ' + (item.link || '') + '<br>Tại Km: ' + (item.taiKm || '') + '<br>Diễn giải: ' + (item.dienGiai || ''));
+            bounds.push([lat, lng]);
+          }
+        }
+      });
+
+      if (bounds.length > 0) {
+        leafletMap.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+      }
+    }
+
+    function getCurrentGPSLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+          var lat = position.coords.latitude.toFixed(6);
+          var lng = position.coords.longitude.toFixed(6);
+          document.getElementById('shToaDo').value = lat + ', ' + lng;
+        }, function(error) {
+          alert('Không thể lấy vị trí hiện tại: ' + error.message);
+        });
+      } else {
+        alert('Trình duyệt không hỗ trợ Geolocation.');
+      }
+    }
+
+    function submitSoHoaForm(e) {
+      e.preventDefault();
+      var formData = {
+        rowIdx: document.getElementById('shRowIdx').value,
+        recordId: document.getElementById('shRecordId').value,
+        tramQuanLy: document.getElementById('shTramQuanLy').value,
+        tuyenQuyDinh: document.getElementById('shTuyenQuyDinh').value,
+        link: document.getElementById('shLink').value,
+        tuyenCap: document.getElementById('shTuyenCap').value,
+        chieuDaiLink: document.getElementById('shChieuDaiLink').value,
+        doiTuong: document.getElementById('shDoiTuong').value,
+        phuongThucThiCong: document.getElementById('shPhuongThucThiCong').value,
+        otdr: document.getElementById('shOtdr').value,
+        doSau: document.getElementById('shDoSau').value,
+        toaDo: document.getElementById('shToaDo').value,
+        thoiGian: document.getElementById('shThoiGian').value,
+        chieuTu: document.getElementById('shChieuTu').value,
+        dienGiai: document.getElementById('shDienGiai').value,
+        km: document.getElementById('shKm').value,
+        m: document.getElementById('shM').value,
+        chupAnh: document.getElementById('shChupAnh').value,
+        taiKm: document.getElementById('shTaiKm').value,
+        tuyenDuong: document.getElementById('shTuyenDuong').value,
+        cachMepDuong: document.getElementById('shCachMepDuong').value,
+        lyDoCapNhat: document.getElementById('shLyDoCapNhat').value,
+        soMxPhatSinh: document.getElementById('shSoMxPhatSinh').value,
+        soCapPhatSinh: document.getElementById('shSoCapPhatSinh').value,
+        coTraoSoi: document.getElementById('shCoTraoSoi').value
+      };
+
+      document.getElementById('soHoaTableResult').innerHTML = '<p class="loading">⏳ Đang lưu dữ liệu số hóa...</p>';
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (res.success) {
+            alert(res.message);
+            resetSoHoaForm();
+            google.script.run.withSuccessHandler(function(r) {
+              if (r && r.success) {
+                globalSoHoaData = r.soHoaData || [];
+                renderSoHoaTableAndMap();
+              }
+            }).getLibraryAndSoHoaData();
+          } else {
+            alert('Lỗi: ' + res.error);
+          }
+        })
+        .saveSoHoaRecord(formData);
+    }
+
+    function resetSoHoaForm() {
+      document.getElementById('soHoaForm').reset();
+      document.getElementById('shRowIdx').value = '';
+      document.getElementById('shRecordId').value = '';
+      document.getElementById('shSubmitBtn').textContent = '💾 Thêm số liệu hóa';
+      if (document.getElementById('shThoiGian')) document.getElementById('shThoiGian').value = new Date().toISOString().split('T')[0];
+      if (document.getElementById('shLyDoCapNhat')) document.getElementById('shLyDoCapNhat').value = 'Số hóa cáp quang';
+      onLyDoCapNhatChange();
+      populateLibraryDropdowns();
+    }
+
+    function editSoHoaRow(idx) {
+      var item = globalSoHoaData.find(function(i) { return i.rowIdx === idx; });
+      if (!item) return;
+
+      document.getElementById('shRowIdx').value = item.rowIdx;
+      document.getElementById('shRecordId').value = item.rowIdx;
+      document.getElementById('shTramQuanLy').value = item.tramQuanLy;
+      updateLinkDropdown();
+      document.getElementById('shLink').value = item.link;
+      updateTuyenCapDropdown();
+      document.getElementById('shTuyenCap').value = item.tuyenCap;
+      updateTuyenQuyDinhDropdown();
+      document.getElementById('shTuyenQuyDinh').value = item.tuyenQuyDinh;
+
+      document.getElementById('shChieuDaiLink').value = item.chieuDaiLink;
+      document.getElementById('shDoiTuong').value = item.doiTuong;
+      document.getElementById('shPhuongThucThiCong').value = item.phuongThucThiCong;
+      document.getElementById('shOtdr').value = item.otdr;
+      document.getElementById('shDoSau').value = item.doSau;
+      document.getElementById('shToaDo').value = item.toaDo;
+      document.getElementById('shThoiGian').value = item.thoiGian;
+      document.getElementById('shChieuTu').value = item.chieuTu;
+      document.getElementById('shDienGiai').value = item.dienGiai;
+      document.getElementById('shKm').value = item.km;
+      document.getElementById('shM').value = item.m;
+      document.getElementById('shChupAnh').value = item.chupAnh;
+      document.getElementById('shTaiKm').value = item.taiKm;
+      document.getElementById('shTuyenDuong').value = item.tuyenDuong;
+      document.getElementById('shCachMepDuong').value = item.cachMepDuong;
+      document.getElementById('shLyDoCapNhat').value = item.lyDoCapNhat || 'Số hóa cáp quang';
+      document.getElementById('shSoMxPhatSinh').value = item.soMxPhatSinh;
+      document.getElementById('shSoCapPhatSinh').value = item.soCapPhatSinh;
+      document.getElementById('shCoTraoSoi').value = item.coTraoSoi;
+
+      onLyDoCapNhatChange();
+      document.getElementById('shSubmitBtn').textContent = '💾 Cập nhật / chỉnh sửa';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function renderSoHoaTableAndMap(filteredData) {
+      var dataToRender = filteredData || globalSoHoaData;
+      var resultDiv = document.getElementById('soHoaTableResult');
+      
+      if (!dataToRender || dataToRender.length === 0) {
+        resultDiv.innerHTML = '<p style="color: red; font-weight: bold;">⚠️ Chưa có dữ liệu số hóa nào.</p>';
+        updateMapMarkers([]);
+        return;
+      }
+
+      var html = '<div class="table-responsive"><table><thead><tr>' +
+        '<th>STT</th><th>Trạm quản lý</th><th>Link</th><th>Tuyến cáp</th><th>Tên tuyến quy định</th><th>Chiều dài Link</th><th>Đối tượng</th><th>OTDR -> MX</th><th>Lấy tọa độ</th><th>Tại Km</th><th>Thời gian</th><th>Chiều từ</th><th>Diễn giải</th><th>Cách mép đường (m)</th>' +
+        '</tr></thead><tbody>';
+
+      dataToRender.forEach(function(item, idx) {
+        html += '<tr onclick="editSoHoaRow(' + item.rowIdx + ')" style="cursor: pointer;" title="Nhấp để chỉnh sửa dòng này">' +
+          '<td style="text-align: center;">' + (idx + 1) + '</td>' +
+          '<td><b>' + (item.tramQuanLy || '') + '</b></td>' +
+          '<td>' + (item.link || '') + '</td>' +
+          '<td>' + (item.tuyenCap || '') + '</td>' +
+          '<td>' + (item.tuyenQuyDinh || '') + '</td>' +
+          '<td>' + (item.chieuDaiLink || '') + '</td>' +
+          '<td>' + (item.doiTuong || '') + '</td>' +
+          '<td><b>' + (item.otdr || '') + '</b></td>' +
+          '<td>' + (item.toaDo || '') + '</td>' +
+          '<td>' + (item.taiKm || '') + '</td>' +
+          '<td>' + (item.thoiGian || '') + '</td>' +
+          '<td>' + (item.chieuTu || '') + '</td>' +
+          '<td>' + (item.dienGiai || '') + '</td>' +
+          '<td>' + (item.cachMepDuong || '') + '</td>' +
+          '</tr>';
+      });
+
+      html += '</tbody></table></div>';
+      resultDiv.innerHTML = html;
+      updateMapMarkers(dataToRender);
+    }
+
+    function filterSoHoaData() {
+      var link = document.getElementById('searchLink').value;
+      var tuyenCap = document.getElementById('searchTuyenCap').value;
+      var otdrVal = parseFloat(document.getElementById('searchOtdr').value);
+
+      var filtered = globalSoHoaData.filter(function(item) {
+        var matchLink = !link || item.link === link;
+        var matchTuyenCap = !tuyenCap || item.tuyenCap === tuyenCap;
+        return matchLink && matchTuyenCap;
+      });
+
+      if (!isNaN(otdrVal) && filtered.length > 0) {
+        filtered.sort(function(a, b) {
+          var diffA = Math.abs(parseFloat(a.otdr || 0) - otdrVal);
+          var diffB = Math.abs(parseFloat(b.otdr || 0) - otdrVal);
+          return diffA - diffB;
+        });
+        filtered = filtered.slice(0, 2);
+      }
+
+      renderSoHoaTableAndMap(filtered);
+    }
+
+    function doSearchVatTuLocal() {
+      var linhVuc = document.getElementById('vtLinhVuc').value.toLowerCase().trim();
+      var keyword = document.getElementById('vtKeyword').value.toLowerCase().trim();
+      var serialKey = document.getElementById('vtSerial').value.toLowerCase().trim();
+
+      var filtered = globalVatTuData.filter(function(item) {
+        var matchLv = !linhVuc || (item.linhVuc && item.linhVuc.toLowerCase().trim() === linhVuc);
+        var rowText = ((item.maKho || '') + ' ' + (item.tenKho || '') + ' ' + (item.loHang || '') + ' ' + (item.maVt || '') + ' ' + (item.tenVt || '') + ' ' + (item.tenTat || '') + ' ' + (item.partNumber || '') + ' ' + (item.serial || '') + ' ' + (item.linhVuc || '')).toLowerCase();
+        var matchKeyword = !keyword || rowText.includes(keyword);
+        var matchSerial = !serialKey || (item.serial && item.serial.toString().toLowerCase().includes(serialKey));
+        return matchLv && matchKeyword && matchSerial;
+      });
+
+      renderVatTuTable(filtered);
+    }
+
+    function renderVatTuTable(data) {
+      var resultDiv = document.getElementById('vatTuResult');
+      var countLabel = document.getElementById('vatTuCountLabel');
+      
+      if (countLabel) countLabel.textContent = 'Số lượng tìm thấy: ' + (data ? data.length : 0) + ' bản ghi';
+
+      if (!data || data.length === 0) {
+        resultDiv.innerHTML = '<p style="color: red; font-weight: bold;">⚠️ Không tìm thấy vật tư phù hợp với điều kiện tra cứu.</p>';
+        return;
+      }
+
+      // Thêm class 'vattu-table' để áp dụng màu vàng nhạt & green nhạt xen kẽ
+      var html = '<div class="table-responsive"><table class="vattu-table"><thead><tr>' +
+        '<th>STT</th><th>Mã Kho</th><th>Tên Kho</th><th>Lô Hàng</th><th>Mã VT</th><th>Tên VT</th><th>Tên Tắt</th><th>Part Number</th><th>Serial / Series No</th><th>Lĩnh Vực</th>' +
+        '</tr></thead><tbody>';
+
+      data.forEach(function(item, idx) {
+        html += '<tr>' +
+          '<td style="text-align: center;">' + (idx + 1) + '</td>' +
+          '<td>' + (item.maKho || '') + '</td>' +
+          '<td>' + (item.tenKho || '') + '</td>' +
+          '<td>' + (item.loHang || '') + '</td>' +
+          '<td>' + (item.maVt || '') + '</td>' +
+          '<td><b>' + (item.tenVt || '') + '</b></td>' +
+          '<td>' + (item.tenTat || '') + '</td>' +
+          '<td>' + (item.partNumber || '') + '</td>' +
+          '<td style="font-weight: bold; color: #e65100;">' + (item.serial || '') + '</td>' +
+          '<td>' + (item.linhVuc || '') + '</td>' +
+          '</tr>';
+      });
+
+      html += '</tbody></table></div>';
+      resultDiv.innerHTML = html;
+    }
+
+    function uploadAndSyncKho() {
+      var fileInput = document.getElementById('khoFile');
+      var resultDiv = document.getElementById('capNhatKhoResult');
+      
+      if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+        alert("Vui lòng chọn file Excel/CSV từ máy tính trước khi cập nhật!");
+        return;
+      }
+      
+      var file = fileInput.files[0];
+      var targetKho = "VẬT TƯ VT";
+      resultDiv.innerHTML = '<p class="loading">⏳ Đang đọc file và cập nhật vào sheet "' + targetKho + '"...</p>';
+      
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var base64Data = e.target.result.split(',')[1];
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res && res.success) {
+              resultDiv.innerHTML = '<p style="color: green; font-weight: bold;">✅ ' + res.message + '</p>';
+            } else {
+              resultDiv.innerHTML = '<p style="color: red; font-weight: bold;">❌ Lỗi: ' + (res ? res.error : "Không có phản hồi từ máy chủ") + '</p>';
+            }
+          })
+          .withFailureHandler(function(err) {
+            resultDiv.innerHTML = '<p style="color: red; font-weight: bold;">❌ Lỗi kết nối Server: ' + err.message + '</p>';
+          })
+          .processCapNhatKho(base64Data, file.name, file.type, targetKho);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function laySoLieuData() {
+      var fileInput = document.getElementById('bcFile');
+      var resultDiv = document.getElementById('baoCaoDataResult');
+      if (fileInput.files && fileInput.files[0]) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          var base64 = e.target.result.split(',')[1];
+          google.script.run.withSuccessHandler(function(res) {
+            if (res.success) resultDiv.innerHTML = '<p style="color: green; font-weight: bold;">✅ ' + res.message + '</p>';
+            else resultDiv.innerHTML = '<p style="color: red; font-weight: bold;">❌ ' + res.error + '</p>';
+          }).importFileToDataSheet(base64, fileInput.files[0].name, fileInput.files[0].type);
+        };
+        reader.readAsDataURL(fileInput.files[0]);
+      } else {
+        var criteria = {
+          tuNgay: document.getElementById('bcTuNgay').value,
+          denNgay: document.getElementById('bcDenNgay').value,
+          muc: document.getElementById('bcMuc').value,
+          nguyenNhan: document.getElementById('bcNguyenNhan').value
+        };
+        resultDiv.innerHTML = '<p class="loading">⏳ Đang lọc dữ liệu từ sheet DATA...</p>';
+        google.script.run.withSuccessHandler(function(res) {
+          if (res.success) {
+            resultDiv.innerHTML = '<p style="color: green; font-weight: bold;">✅ Đã tìm thấy ' + res.data.length + ' bản ghi thỏa mãn điều kiện.</p>';
+          } else {
+            resultDiv.innerHTML = '<p style="color: red;">❌ ' + res.error + '</p>';
+          }
+        }).getBaoCaoTuDataFilter(criteria);
+      }
+    }
+
+    function xuatBaoCaoData() {
+      var criteria = {
+        tuNgay: document.getElementById('bcTuNgay').value,
+        denNgay: document.getElementById('bcDenNgay').value,
+        muc: document.getElementById('bcMuc').value,
+        nguyenNhan: document.getElementById('bcNguyenNhan').value
+      };
+      
+      var elNguoiLap = document.getElementById('bcNguoiLap') || document.getElementById('nguoiLap') || document.getElementById('cbkt');
+      var nguoiLap = elNguoiLap ? elNguoiLap.value : '';
+      
+      google.script.run.withSuccessHandler(function(res) {
+        if (!res.success) { alert(res.error); return; }
+        
+        let excelData = [
+          ["BÁO CÁO CHẤT LƯỢNG MẠNG VÔ TUYẾN", "", "", "", "", "", "", ""],
+          ["Notes: khi có sự cố mll diện rộng cần BC khẩn cấp với LĐ Đài.", "", "", "", "", "", "", ""],
+          ["TT", "NGÀY BC", "TRẠM MẤT LIÊN LẠC >30 PHÚT", "TG SỰ CỐ", "TG CLR", "NGUYÊN NHÂN", "GHI CHÚ", "CBKT lập BC"]
+        ];
+        
+        res.data.forEach((r, idx) => {
+          let ngayBc = criteria.tuNgay ? criteria.tuNgay.split('-').reverse().join('/') : new Date().toLocaleDateString('vi-VN');
+          let tenTram = "", tgSuCo = "", tgClr = "", nguyenNhan = "", ghiChu = "";
+          
+          if (Array.isArray(r)) {
+            tenTram = r[4] !== undefined ? r[4] : (r[2] || '');
+            tgSuCo = r[10] !== undefined ? r[10] : (r[3] || '');
+            tgClr = r[11] !== undefined ? r[11] : (r[4] || '');
+            nguyenNhan = r[8] !== undefined ? r[8] : (r[5] || '');
+            ghiChu = r.ghiChu || r[18] !== undefined ? r[18] : (r[6] || '');
+          } else if (r && typeof r === 'object') {
+            tenTram = r.tenTram || r.tram || r.object || "";
+            tgSuCo = r.tgSuCo || r.thoiGianSuCo || "";
+            tgClr = r.tgClr || r.thoiGianClr || "";
+            nguyenNhan = r.nguyenNhan || r.dienGiai || "";
+            ghiChu = r.ghiChu || "";
+          }
+          
+          if (!nguyenNhan) nguyenNhan = "Mất liên lạc SITE_OOS";
+          excelData.push([idx + 1, ngayBc, tenTram, tgSuCo, tgClr, nguyenNhan, ghiChu, idx === 0 ? nguoiLap : '']);
+        });
+        
+        let ws = XLSX.utils.aoa_to_sheet(excelData);
+        let colWidths = [{ wch: 6 }, { wch: 13 }, { wch: 25 }, { wch: 22 }, { wch: 22 }, { wch: 26 }, { wch: 38 }, { wch: 20 }];
+        ws['!cols'] = colWidths;
+        
+        if (!ws['!merges']) ws['!merges'] = [];
+        ws['!merges'].push({ s: { r: 0, c: 0 }, e: { r: 0, c: 7 } });
+        ws['!merges'].push({ s: { r: 1, c: 0 }, e: { r: 1, c: 7 } });
+        if (res.data.length > 0) {
+          ws['!merges'].push({ s: { r: 3, c: 7 }, e: { r: 2 + res.data.length, c: 7 } });
+        }
+        
+        let borderThinBlack = { top: { style: "thin", color: { rgb: "000000" } }, bottom: { style: "thin", color: { rgb: "000000" } }, left: { style: "thin", color: { rgb: "000000" } }, right: { style: "thin", color: { rgb: "000000" } } };
+        let titleStyle = { font: { name: "Arial", sz: 14, bold: true }, alignment: { horizontal: "center", vertical: "center" }, border: borderThinBlack };
+        let noteStyle = { font: { name: "Arial", sz: 10, italic: true }, alignment: { horizontal: "center", vertical: "center" }, border: borderThinBlack };
+        let headerStyle = { font: { name: "Arial", sz: 11, bold: true, color: { rgb: "B71C1C" } }, alignment: { horizontal: "center", vertical: "center", wrapText: true }, border: borderThinBlack };
+        let cellStyle = { font: { name: "Arial", sz: 11 }, alignment: { vertical: "center", wrapText: true }, border: borderThinBlack };
+        let centerCellStyle = Object.assign({}, cellStyle, { alignment: { horizontal: "center", vertical: "center" } });
+        let cbktStyle = Object.assign({}, cellStyle, { font: { name: "Arial", sz: 11, bold: true }, alignment: { horizontal: "center", vertical: "center" } });
+
+        const range = XLSX.utils.decode_range(ws['!ref']);
+        for (let R = range.s.r; R <= range.e.r; ++R) {
+          for (let C = range.s.c; C <= range.e.c; ++C) {
+            let cellAddress = XLSX.utils.encode_cell({r: R, c: C});
+            if (!ws[cellAddress]) ws[cellAddress] = { t: 's', v: '' };
+            if (R === 0) ws[cellAddress].s = titleStyle;
+            else if (R === 1) ws[cellAddress].s = noteStyle;
+            else if (R === 2) ws[cellAddress].s = headerStyle;
+            else if (R >= 3) {
+              if (C === 0 || C === 1) ws[cellAddress].s = centerCellStyle;
+              else if (C === 7) ws[cellAddress].s = cbktStyle;
+              else ws[cellAddress].s = cellStyle;
+            }
+          }
+        }
+        
+        let wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "BaoCao");
+        let fileDateStr = criteria.tuNgay ? criteria.tuNgay.split('-').reverse().join('') : new Date().toISOString().split('T')[0].split('-').reverse().join('');
+        XLSX.writeFile(wb, "HUE_BC_CLM_vo_tuyen_su_co_Dai_DHA_ngay_" + fileDateStr + ".xlsx");
+      }).getBaoCaoTuDataFilter(criteria);
+    }
+
+    function loadPhanCaTable() {
+      var tuanBatDau = document.getElementById('pcTuanBatDau').value;
+      var resDiv = document.getElementById('phanCaResult');
+      resDiv.innerHTML = '<p class="loading">⏳ Đang tải lịch phân ca...</p>';
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (res.success) {
+            if (res.tuanBatDau && document.getElementById('pcTuanBatDau')) {
+              document.getElementById('pcTuanBatDau').value = res.tuanBatDau;
+            }
+            var data = res.data || [];
+            var positionNotes = (res.positionNotes && Object.keys(res.positionNotes).length > 0) ? res.positionNotes : defaultPositionNotes;
+            var daysName = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ Nhật"];
+            
+            var html = '<div class="table-responsive"><table class="phan-ca-table"><thead><tr><th>Ca / Vị trí</th>';
+            for (var i = 0; i < 7; i++) {
+              var dText = daysName[i];
+              if (data[i] && data[i].ngay) dText += '<br><small>' + data[i].ngay + '</small>';
+              html += '<th>' + dText + '</th>';
+            }
+            html += '<th class="red-frame-cell" style="width: 220px;">Ghi chú</th></tr></thead><tbody>';
+
+            var rowsDef = [
+              { label: 'CA 1', key: 'ca1', noteKey: 'ca1' },
+              { label: 'CA 2', key: 'ca2', noteKey: 'ca2' },
+              { label: 'CA 3', key: 'ca3', noteKey: 'ca3' },
+              { label: 'TTCQ 1', key: 'ttcq1', noteKey: 'ttcq1' },
+              { label: 'TTCQ 2', key: 'ttcq2', noteKey: 'ttcq2' },
+              { label: 'TTCQ 3', key: 'ttcq3', noteKey: 'ttcq3' },
+              { label: 'Công tác', key: 'congTac', noteKey: 'congTac' },
+              { label: 'Nghỉ bù', key: 'nghiBu', noteKey: 'nghiBu' }
+            ];
+
+            rowsDef.forEach(function(r) {
+              html += '<tr><td><b>' + r.label + '</b></td>';
+              for (var i = 0; i < 7; i++) {
+                var cellVal = (data[i] && data[i][r.key]) ? data[i][r.key] : '';
+                html += '<td>' + cellVal + '</td>';
+              }
+              var noteVal = (positionNotes && positionNotes[r.noteKey] !== undefined && positionNotes[r.noteKey] !== '') ? positionNotes[r.noteKey] : (defaultPositionNotes[r.noteKey] || '');
+              html += '<td class="red-frame-cell">' + noteVal + '</td></tr>';
+            });
+
+            html += '</tbody></table></div>';
+            resDiv.innerHTML = html;
+          } else {
+            resDiv.innerHTML = '<p style="color: red;">❌ Lỗi: ' + res.error + '</p>';
+          }
+        })
+        .withFailureHandler(function(err) {
+          resDiv.innerHTML = '<p style="color: red;">❌ Lỗi kết nối: ' + err.message + '</p>';
+        })
+        .getPhanCaByWeek(tuanBatDau);
+    }
+
+    function loadBangTinhCong() {
+      var tuNgay = document.getElementById('tcTuNgay').value;
+      var denNgay = document.getElementById('tcDenNgay').value;
+      var resDiv = document.getElementById('tinhCongResult');
+      resDiv.innerHTML = '<p class="loading">⏳ Đang tổng hợp công nhân viên...</p>';
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (res.success) {
+            var data = res.data || [];
+            if (data.length === 0) {
+              resDiv.innerHTML = '<p style="color: orange; font-weight: bold;">⚠️ Không có dữ liệu ca trực trong khoảng thời gian này.</p>';
+              return;
+            }
+
+            var html = '<div class="table-responsive"><table><thead><tr>' +
+              '<th>STT</th><th>Họ và Tên Nhân Viên</th><th style="text-align: center;">Ca 1</th><th style="text-align: center;">Ca 2</th><th style="text-align: center;">Ca 3</th><th style="text-align: center;">TTCQ</th><th style="text-align: center;">Công Tác</th><th style="text-align: center;">Nghỉ Bù</th><th style="text-align: center; background-color: #e8f5e9; color: #2e7d32;">Tổng Tổng</th>' +
+              '</tr></thead><tbody>';
+
+            data.forEach(function(row, idx) {
+              html += '<tr>' +
+                '<td style="text-align: center;">' + (idx + 1) + '</td>' +
+                '<td><b>' + row.nhanVien + '</b></td>' +
+                '<td style="text-align: center;">' + (row.ca1 || 0) + '</td>' +
+                '<td style="text-align: center;">' + (row.ca2 || 0) + '</td>' +
+                '<td style="text-align: center;">' + (row.ca3 || 0) + '</td>' +
+                '<td style="text-align: center;">' + (row.ttcq || 0) + '</td>' +
+                '<td style="text-align: center;">' + (row.congTac || 0) + '</td>' +
+                '<td style="text-align: center;">' + (row.nghiBu || 0) + '</td>' +
+                '<td style="text-align: center; font-weight: bold; background-color: #f1f8e9; color: #2e7d32;">' + row.tongCa + '</td>' +
+                '</tr>';
+            });
+
+            html += '</tbody></table></div>';
+            resDiv.innerHTML = html;
+          } else {
+            resDiv.innerHTML = '<p style="color: red;">❌ Lỗi: ' + res.error + '</p>';
+          }
+        })
+        .withFailureHandler(function(err) {
+          resDiv.innerHTML = '<p style="color: red;">❌ Lỗi kết nối: ' + err.message + '</p>';
+        })
+        .tinhCongNhanVien(tuNgay, denNgay);
+    }
+
+    function createDropdownOptions(list, selectedValue) {
+      var optHtml = '<option value="">-- Chọn --</option>';
+      if (list && Array.isArray(list)) {
+        list.forEach(function(item) {
+          var sel = (item === selectedValue) ? 'selected' : '';
+          optHtml += '<option value="' + item + '" ' + sel + '>' + item + '</option>';
+        });
+      }
+      return optHtml;
+    }
+
+    function createMultiDropdownOptions(list, selectedValuesStr) {
+      var selectedArr = (selectedValuesStr || '').split(',').map(function(s) { return s.trim(); });
+      var optHtml = '';
+      if (list && Array.isArray(list)) {
+        list.forEach(function(item) {
+          var sel = selectedArr.includes(item) ? 'selected' : '';
+          optHtml += '<option value="' + item + '" ' + sel + '>' + item + '</option>';
+        });
+      }
+      return optHtml;
+    }
+
+    function switchToEditPhanCa() {
+      var tuanBatDau = document.getElementById('pcTuanBatDau').value;
+      if (!tuanBatDau) { alert("Vui lòng chọn tuần bắt đầu!"); return; }
+      var resDiv = document.getElementById('phanCaResult');
+      resDiv.innerHTML = '<p class="loading">⏳ Đang tải dữ liệu để chỉnh sửa...</p>';
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (res.success) {
+            var existingData = res.data || [];
+            var trucCaList = res.trucCaList || [];
+            var tuanTraList = res.tuanTraList || [];
+            var pNotes = (res.positionNotes && Object.keys(res.positionNotes).length > 0) ? res.positionNotes : defaultPositionNotes;
+            var daysName = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ Nhật"];
+            var baseDate = new Date(tuanBatDau);
+            
+            var html = '<form id="formEditPhanCa" onsubmit="savePhanCaForm(event)">' +
+              '<p style="color: #1976d2; font-weight: bold;">Nhập liệu phân ca cho tuần bắt đầu từ: ' + tuanBatDau + '</p>' +
+              '<div class="table-responsive"><table class="phan-ca-table"><thead><tr>' +
+              '<th>Thứ / Ngày</th><th>Ca 1</th><th>Ca 2</th><th>Ca 3</th><th>TTCQ 1</th><th>TTCQ 2</th><th>TTCQ 3</th><th>Công tác</th><th>Nghỉ bù</th>' +
+              '</tr></thead><tbody>';
+
+            for (var i = 0; i < 7; i++) {
+              var currDate = new Date(baseDate);
+              currDate.setDate(baseDate.getDate() + i);
+              var dateStr = currDate.toISOString().split('T')[0];
+              var matched = existingData.find(function(item) { return item.thu === daysName[i]; }) || {};
+
+              html += '<tr>' +
+                '<td><b>' + daysName[i] + '</b><br><input type="date" name="ngay_' + i + '" value="' + (matched.ngay || dateStr) + '" style="font-size:11px; padding:4px;"></td>' +
+                '<td><select name="ca1_' + i + '" class="select-single">' + createDropdownOptions(trucCaList, matched.ca1) + '</select></td>' +
+                '<td><select name="ca2_' + i + '" class="select-single">' + createDropdownOptions(trucCaList, matched.ca2) + '</select></td>' +
+                '<td><select name="ca3_' + i + '" class="select-single">' + createDropdownOptions(trucCaList, matched.ca3) + '</select></td>' +
+                '<td><select name="ttcq1_' + i + '" class="select-multi" multiple="multiple">' + createMultiDropdownOptions(tuanTraList, matched.ttcq1) + '</select></td>' +
+                '<td><select name="ttcq2_' + i + '" class="select-multi" multiple="multiple">' + createMultiDropdownOptions(tuanTraList, matched.ttcq2) + '</select></td>' +
+                '<td><select name="ttcq3_' + i + '" class="select-multi" multiple="multiple">' + createMultiDropdownOptions(tuanTraList, matched.ttcq3) + '</select></td>' +
+                '<td><select name="congTac_' + i + '" class="select-multi" multiple="multiple">' + createMultiDropdownOptions(trucCaList, matched.congTac) + '</select></td>' +
+                '<td><select name="nghiBu_' + i + '" class="select-multi" multiple="multiple">' + createMultiDropdownOptions(trucCaList, matched.nghiBu) + '</select></td>' +
+                '</tr>';
+            }
+
+            html += '</tbody></table></div>' +
+              '<div class="notes-edit-box">' +
+              '<h3 style="color: #b71c1c; margin-top: 0; margin-bottom: 15px; font-size: 15px; border-bottom: 1px solid #ffcdd2; padding-bottom: 8px;">Ghi chú theo vị trí trực / tuần tra</h3>' +
+              '<div class="form-row">' +
+                '<div class="form-group"><label>Ghi chú CA 1:</label><textarea id="pNote_ca1">' + (pNotes.ca1 || defaultPositionNotes.ca1) + '</textarea></div>' +
+                '<div class="form-group"><label>Ghi chú CA 2:</label><textarea id="pNote_ca2">' + (pNotes.ca2 || defaultPositionNotes.ca2) + '</textarea></div>' +
+                '<div class="form-group"><label>Ghi chú CA 3:</label><textarea id="pNote_ca3">' + (pNotes.ca3 || defaultPositionNotes.ca3) + '</textarea></div>' +
+              '</div>' +
+              '<div class="form-row">' +
+                '<div class="form-group"><label>Ghi chú TTCQ 1:</label><textarea id="pNote_ttcq1">' + (pNotes.ttcq1 || defaultPositionNotes.ttcq1) + '</textarea></div>' +
+                '<div class="form-group"><label>Ghi chú TTCQ 2:</label><textarea id="pNote_ttcq2">' + (pNotes.ttcq2 || defaultPositionNotes.ttcq2) + '</textarea></div>' +
+                '<div class="form-group"><label>Ghi chú TTCQ 3:</label><textarea id="pNote_ttcq3">' + (pNotes.ttcq3 || defaultPositionNotes.ttcq3) + '</textarea></div>' +
+              '</div>' +
+              '<div class="form-row">' +
+                '<div class="form-group"><label>Ghi chú Công tác:</label><textarea id="pNote_congTac">' + (pNotes.congTac || defaultPositionNotes.congTac) + '</textarea></div>' +
+                '<div class="form-group"><label>Ghi chú Nghỉ bù:</label><textarea id="pNote_nghiBu">' + (pNotes.nghiBu || defaultPositionNotes.nghiBu) + '</textarea></div>' +
+              '</div>' +
+              '</div>' +
+              '<button type="submit" class="btn-action btn-success-action" style="margin-top: 15px;">💾 Lưu Phân Ca Tuần</button>' +
+              ' <button type="button" class="btn-action" style="background:#757575; margin-top: 15px;" onclick="loadPhanCaTable()">❌ Hủy</button>' +
+              '</form>';
+
+            resDiv.innerHTML = html;
+            $(document).ready(function() {
+                $('.select-multi').select2({ placeholder: "-- Chọn nhân sự --", allowClear: true, width: '100%' });
+                $('.select-single').select2({ placeholder: "-- Chọn --", allowClear: true, width: '100%' });
+            });
+          } else {
+            resDiv.innerHTML = '<p style="color: red;">Lỗi tải dữ liệu: ' + res.error + '</p>';
+          }
+        })
+        .withFailureHandler(function(err) {
+          resDiv.innerHTML = '<p style="color: red;">Lỗi kết nối: ' + err.message + '</p>';
+        })
+        .getPhanCaByWeek(tuanBatDau);
+    }
+
+    function getMultiSelectVal(inputName) {
+        var val = $('[name="' + inputName + '"]').val();
+        return (val && Array.isArray(val)) ? val.join(', ') : (val || '');
+    }
+
+    function savePhanCaForm(e) {
+      e.preventDefault();
+      var tuanBatDau = document.getElementById('pcTuanBatDau').value;
+      var daysName = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ Nhật"];
+      var daysData = [];
+
+      for (var i = 0; i < 7; i++) {
+        daysData.push({
+          ngay: document.querySelector('[name="ngay_' + i + '"]').value,
+          thu: daysName[i],
+          ca1: document.querySelector('[name="ca1_' + i + '"]').value,
+          ca2: document.querySelector('[name="ca2_' + i + '"]').value,
+          ca3: document.querySelector('[name="ca3_' + i + '"]').value,
+          ttcq1: getMultiSelectVal('ttcq1_' + i),
+          ttcq2: getMultiSelectVal('ttcq2_' + i),
+          ttcq3: getMultiSelectVal('ttcq3_' + i),
+          congTac: getMultiSelectVal('congTac_' + i),
+          nghiBu: getMultiSelectVal('nghiBu_' + i),
+          ghiChu: ''
+        });
+      }
+
+      var positionNotes = {
+        ca1: document.getElementById('pNote_ca1').value,
+        ca2: document.getElementById('pNote_ca2').value,
+        ca3: document.getElementById('pNote_ca3').value,
+        ttcq1: document.getElementById('pNote_ttcq1').value,
+        ttcq2: document.getElementById('pNote_ttcq2').value,
+        ttcq3: document.getElementById('pNote_ttcq3').value,
+        congTac: document.getElementById('pNote_congTac').value,
+        nghiBu: document.getElementById('pNote_nghiBu').value
+      };
+
+      document.getElementById('phanCaResult').innerHTML = '<p class="loading">⏳ Đang lưu phân ca...</p>';
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (res.success) {
+            alert("✅ Lưu phân ca thành công!");
+            loadPhanCaTable();
+          } else {
+            alert("❌ Lỗi: " + res.error);
+            loadPhanCaTable();
+          }
+        })
+        .withFailureHandler(function(err) {
+          alert("❌ Lỗi kết nối: " + err.message);
+          loadPhanCaTable();
+        })
+        .savePhanCaWeek({ tuanBatDau: tuanBatDau, daysData: daysData, positionNotes: positionNotes });
+    }
+
+    function loadShiftData() {
+      var ngayGiao = document.getElementById('gcNgayGiao').value;
+      var caTruc = document.getElementById('gcCaTruc').value;
+      if (!ngayGiao) { alert("Vui lòng chọn ngày giao ca!"); return; }
+      
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (res.success) {
+            if (res.found && res.data) {
+              document.getElementById('gcNguoiGiao').value = res.data.nguoiGiao || '';
+              document.getElementById('gcNguoiNhan').value = res.data.nguoiNhan || '';
+              document.getElementById('gcCongViecTX').value = res.data.congViecThuongXuyen || '';
+              document.getElementById('gcNoiDungCV').value = res.data.noiDungCongViec || '';
+              document.getElementById('gcTonTai').value = res.data.noiDungTonTai || '';
+              alert("✅ Đã tải dữ liệu bàn giao ca cũ thành công!");
+            } else {
+              alert("ℹ️ " + res.message);
+            }
+          } else {
+            alert("❌ Lỗi: " + res.error);
+          }
+        })
+        .withFailureHandler(function(err) {
+          alert("❌ Lỗi kết nối: " + err.message);
+        })
+        .getShiftData(ngayGiao, caTruc);
+    }
+
+    function submitHandover(e) {
+      e.preventDefault();
+      var formData = {
+        ngayGiao: document.getElementById('gcNgayGiao').value,
+        caTruc: document.getElementById('gcCaTruc').value,
+        nguoiGiao: document.getElementById('gcNguoiGiao').value,
+        nguoiNhan: document.getElementById('gcNguoiNhan').value,
+        congViecThuongXuyen: document.getElementById('gcCongViecTX').value,
+        noiDungCongViec: document.getElementById('gcNoiDungCV').value,
+        noiDungTonTai: document.getElementById('gcTonTai').value
+      };
+      
+      var resDiv = document.getElementById('handoverResult');
+      resDiv.innerHTML = '<p class="loading">⏳ Đang tạo biên bản bàn giao và lưu trữ...</p>';
+      
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (res.success) {
+            var html = '<p style="color: green; font-weight: bold;">✅ Lưu và tạo biên bản thành công!</p>';
+            if (res.url) html += '<p><a href="' + res.url + '" target="_blank" class="map-link">📄 Xem Google Doc Biên Bản</a></p>';
+            if (res.pdfUrl) html += '<p><a href="' + res.pdfUrl + '" target="_blank" class="map-link">📑 Xem File PDF Biên Bản</a></p>';
+            resDiv.innerHTML = html;
+          } else {
+            resDiv.innerHTML = '<p style="color: red; font-weight: bold;">❌ Lỗi: ' + res.error + '</p>';
+          }
+        })
+        .withFailureHandler(function(err) {
+          resDiv.innerHTML = '<p style="color: red; font-weight: bold;">❌ Lỗi kết nối: ' + err.message + '</p>';
+        })
+        .processHandover(formData);
+    }
+
+    function loadFlipbookData() {
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (res && res.success) {
+            var records = res.data || [];
+            buildFlipbook(records);
+          }
+        })
+        .getFlipbookRecords();
+    }
+
+    function buildFlipbook(records) {
+      var bookEl = document.getElementById('book');
+      var coverHtml = `<div class="page page-cover">
+        <div style="margin: auto; display: flex; flex-direction: column; justify-content: space-between; height: 100%; padding: 20px 10px; text-align: center;">
+          <div>
+            <div style="font-size: 13px; font-weight: bold; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.5px;">TRUNG TÂM HẠ TẦNG MIỀN TRUNG</div>
+            <div style="font-size: 12px; font-weight: bold; text-transform: uppercase; opacity: 0.9;">TRẠM VIỄN THÔNG HUẾ</div>
+          </div>
+          <div><h2 style="font-size: 28px; margin: 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.4); letter-spacing: 1px;">SỔ TRỰC CA</h2></div>
+          <div><p style="font-size: 12px; margin: 0; opacity: 0.8;">(Tổng số trang: ${records.length + 1})</p></div>
+        </div>
+      </div>`;
+
+      var pagesHtml = coverHtml;
+      records.forEach(function(r, idx) {
+        pagesHtml += `<div class="page">
+          <div>
+            <h3>BIÊN BẢN BÀN GIAO CA TRỰC</h3>
+            <div class="page-body">
+              <p><b>Ngày giao:</b> ${r.ngayGiao} | <b>Ca trực:</b> ${r.caTruc}</p>
+              <p><b>Người giao:</b> ${r.nguoiGiao} <br><b>Người nhận:</b> ${r.nguoiNhan}</p>
+              <hr style="margin: 6px 0;">
+              <p><b>2.1. Công việc thường xuyên:</b><br>${r.congViecThuongXuyen || ''}</p>
+              <p><b>2.2. Nội dung công việc & sự cố:</b><br>${r.noiDungCongViec || ''}</p>
+              <p><b>2.4. Nội dung tồn tại:</b><br>${r.noiDungTonTai || ''}</p>
+            </div>
+          </div>
+          <div class="page-footer">
+            <div>Trang ${idx + 2} / ${records.length + 1}</div>
+            ${r.docUrl ? '<a href="' + r.docUrl + '" target="_blank" style="color: #7b1fa2;">Xem Doc</a>' : ''}
+            ${r.pdfUrl ? ' | <a href="' + r.pdfUrl + '" target="_blank" style="color: #7b1fa2;">Xem PDF</a>' : ''}
+          </div>
+        </div>`;
+      });
+
+      bookEl.innerHTML = pagesHtml;
+
+      if (pageFlipInstance) {
+        pageFlipInstance.destroy();
+        pageFlipInstance = null;
+      }
+
+      try {
+        pageFlipInstance = new St.PageFlip(bookEl, {
+          width: 500,
+          height: 600,
+          size: 'stretch',
+          minWidth: 315,
+          maxWidth: 1000,
+          minHeight: 400,
+          maxHeight: 800,
+          maxShadowOpacity: 0.5,
+          showCover: true,
+          mobileScrollSupport: true
+        });
+        pageFlipInstance.loadFromHTML(bookEl.querySelectorAll('.page'));
+        
+        pageFlipInstance.on('flip', (e) => {
+          document.getElementById('page-info').textContent = 'Trang: ' + (e.data + 1) + ' / ' + (records.length + 1);
+        });
+        
+        document.getElementById('page-info').textContent = 'Trang: 1 / ' + (records.length + 1);
+      } catch (err) {
+        console.error("Flipbook error:", err);
+      }
+    }
+
+    function nextPage() {
+      if (pageFlipInstance) pageFlipInstance.flipNext();
+    }
+
+    function prevPage() {
+      if (pageFlipInstance) pageFlipInstance.flipPrev();
+    }
+  </script>
 </body>
 </html>
